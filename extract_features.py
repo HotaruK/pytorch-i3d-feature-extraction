@@ -24,8 +24,8 @@ def load_frame(frame_file, resize=False):
 
     data = Image.open(frame_file)
 
-    assert(data.size[1] == 256)
-    assert(data.size[0] == 340)
+    # assert(data.size[1] == 256)
+    # assert(data.size[0] == 340)
 
     if resize:
         data = data.resize((224, 224), Image.ANTIALIAS)
@@ -192,7 +192,7 @@ def run(mode='rgb', load_model='', sample_mode='oversample', frequency=16,
         return b_features
 
 
-    video_names = [i for i in os.listdir(input_dir) if i[0] == 'v']
+    video_names = [i for i in os.listdir(input_dir)]
 
     for video_name in video_names:
 
@@ -206,9 +206,9 @@ def run(mode='rgb', load_model='', sample_mode='oversample', frequency=16,
         if mode == 'rgb':
             if usezip:
                 rgb_zipdata = zipfile.ZipFile(os.path.join(frames_dir, 'img.zip'), 'r')
-                rgb_files = [i for i in rgb_zipdata.namelist() if i.startswith('img')]
+                rgb_files = [i for i in rgb_zipdata.namelist() if i.startswith('image')]
             else:
-                rgb_files = [i for i in os.listdir(frames_dir) if i.startswith('img')]
+                rgb_files = [i for i in os.listdir(frames_dir) if i.startswith('image')]
 
             rgb_files.sort()
             frame_cnt = len(rgb_files)
@@ -234,14 +234,26 @@ def run(mode='rgb', load_model='', sample_mode='oversample', frequency=16,
         # clipped_length = (frame_cnt // chunk_size) * chunk_size   # Cut frames
 
         # Cut frames
-        assert(frame_cnt > chunk_size)
-        clipped_length = frame_cnt - chunk_size
-        clipped_length = (clipped_length // frequency) * frequency  # The start of last chunk
-
-        frame_indices = [] # Frames to chunks
-        for i in range(clipped_length // frequency + 1):
-            frame_indices.append(
-                [j for j in range(i * frequency, i * frequency + chunk_size)])
+        frame_indices = []  # Frames to chunks
+        span_half = frequency // 2
+        for i in range(frame_cnt):
+            start = max(0, i - span_half)
+            end = min(frame_cnt-1, i + span_half)
+            if start == 0:
+                end = min(frame_cnt-1, end + (span_half - i))
+            if end == frame_cnt-1:
+                start = max(0, start - (i + span_half - (frame_cnt-1)))
+            if end - start > frequency:
+                end -= 1
+            frame_indices.append([j for j in range(start, end+1)])
+        # assert(frame_cnt > chunk_size)
+        # clipped_length = frame_cnt - chunk_size
+        # clipped_length = (clipped_length // frequency) * frequency  # The start of last chunk
+        #
+        # frame_indices = [] # Frames to chunks
+        # for i in range(clipped_length // frequency + 1):
+        #     frame_indices.append(
+        #         [j for j in range(i * frequency, i * frequency + chunk_size)])
 
         frame_indices = np.array(frame_indices)
 
@@ -307,7 +319,7 @@ def run(mode='rgb', load_model='', sample_mode='oversample', frequency=16,
             video_name=video_name)
 
         print('{} done: {} / {}, {}'.format(
-            video_name, frame_cnt, clipped_length, full_features.shape))
+            video_name, frame_cnt, 0, full_features.shape))
 
 
 

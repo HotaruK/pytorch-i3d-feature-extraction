@@ -1,2 +1,5 @@
 features/*
 __pycache__/*
+.idea
+venv
+venv_win
